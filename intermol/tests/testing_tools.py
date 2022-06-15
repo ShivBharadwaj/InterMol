@@ -77,8 +77,8 @@ def convert_one_to_all(input_engine, test_type, energy, output_dir,
     flags = {'energy': energy,
              input_engine: True}
 
-    testing_logger.info('Running {} {} tests'.format(input_engine.upper(), test_type))
-    output_dir = os.path.join(output_dir, '{}_test_outputs'.format(test_type))
+    testing_logger.info(f'Running {input_engine.upper()} {test_type} tests')
+    output_dir = os.path.join(output_dir, f'{test_type}_test_outputs')
 
     try:
         os.makedirs(output_dir)
@@ -91,11 +91,11 @@ def convert_one_to_all(input_engine, test_type, energy, output_dir,
     if not energy:
         return  # No need to compare energies.
 
-    exceptions = list()
+    exceptions = []
     for output_engine, tests in results.items():
         # All non-numeric results are assumed to be intended error messages such
         # as unconvertible functional forms for specific packages.
-        numeric_results = list()
+        numeric_results = []
         for val in tests.values():
             try:
                 float_val = float(val)
@@ -135,16 +135,17 @@ def _convert_from_engine(input_engine, flags, output_dir, test_type='unit'):
 
     """
     from intermol import convert
-    test_dir = resource_filename('intermol', 'tests/{}/{}_tests'.format(
-        input_engine, test_type))
+    test_dir = resource_filename(
+        'intermol', f'tests/{input_engine}/{test_type}_tests'
+    )
+
 
     get_test_files = test_finders[input_engine]
 
     test_files, names = get_test_files(test_dir)
     test_files = list(test_files)
-    if len(test_files) < 1:
-        testing_logger.info('No {} tests found for {}.'.format(
-            test_type, input_engine.upper()))
+    if not test_files:
+        testing_logger.info(f'No {test_type} tests found for {input_engine.upper()}.')
         return
     # The results of all conversions are stored in nested dictionaries:
     # results = {'gromacs': {'bond1: result, 'bond2: result...},
@@ -153,13 +154,14 @@ def _convert_from_engine(input_engine, flags, output_dir, test_type='unit'):
     per_file_results = OrderedDict((k, None) for k in names)
     results = OrderedDict((engine, copy(per_file_results)) for engine in ENGINES)
 
-    base_output_dir = os.path.join(output_dir, 'from_{}'.format(input_engine))
+    base_output_dir = os.path.join(output_dir, f'from_{input_engine}')
     try:
         os.makedirs(base_output_dir)
     except OSError:
         if not os.path.isdir(base_output_dir):
             raise
 
+    vacstring = '_vacuum'
     for test_file, name in zip(test_files, names):
         testing_logger.info('Converting {0}'.format(name))
         odir = '{0}/{1}'.format(base_output_dir, name)
@@ -173,32 +175,36 @@ def _convert_from_engine(input_engine, flags, output_dir, test_type='unit'):
 
         # is it a vacuum file or not.
         s = ''
-        vacstring = '_vacuum'
         if vacstring in test_file[0]:
             s = vacstring
 
         if input_engine == 'gromacs':
             gro, top = test_file
             flags['gro_in'] = [gro, top]
-            flags['inefile'] = os.path.join(test_input_dir, 'gromacs' , 'grompp' + s + '.mdp')
+            flags['inefile'] = os.path.join(test_input_dir, 'gromacs', f'grompp{s}.mdp')
 
         elif input_engine == 'lammps':
             flags['lmp_in'] = test_file
 
         elif input_engine == 'desmond':
             flags['des_in'] = test_file
-            flags['inefile'] = os.path.join(test_input_dir, 'desmond', 'onepoint' + s + '.cfg')
+            flags['inefile'] = os.path.join(test_input_dir, 'desmond', f'onepoint{s}.cfg')
 
         elif input_engine == 'amber':
             prmtop, rst = test_file
             flags['amb_in'] = [prmtop, rst]
-            flags['inefile'] = os.path.join(test_input_dir, 'amber', 'min' + s + '.in')
+            flags['inefile'] = os.path.join(test_input_dir, 'amber', f'min{s}.in')
 
         flags['odir'] = odir
         for engine in ENGINES:
             flags[engine] = True
             if set_prefix[engine]:  # set the input file to use for the output
-                flags[engine+'_set'] = os.path.join(test_input_dir, engine, set_prefix[engine] + s + set_suffix[engine])
+                flags[f'{engine}_set'] = os.path.join(
+                    test_input_dir,
+                    engine,
+                    set_prefix[engine] + s + set_suffix[engine],
+                )
+
 
         if flags['lammps']:
             if '_vacuum' in test_file[0]:
@@ -251,8 +257,8 @@ def _get_amber_test_files(test_dir):
     suffix = ['rst','rst7','crd','inpcrd']
     crd_files = []
     for s in suffix:
-        crd_files += glob(os.path.join(test_dir, '*/*.' + s))    # generalize to other coordinate files
-    crd_files = sorted(crd_files)    
+        crd_files += glob(os.path.join(test_dir, f'*/*.{s}'))
+    crd_files = sorted(crd_files)
     names = [os.path.splitext(os.path.basename(prmtop))[0] for prmtop in prmtop_files]
     return zip(prmtop_files, crd_files), names
 

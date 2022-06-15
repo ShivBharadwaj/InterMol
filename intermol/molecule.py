@@ -10,7 +10,7 @@ class Molecule(object):
         if not name:
             name = "MOL"
         self.name = name
-        self._atoms = list()
+        self._atoms = []
 
     def add_atom(self, atom):
         """Add an atom
@@ -26,8 +26,7 @@ class Molecule(object):
         return self._atoms
 
     def __repr__(self):
-        return "Molecule '{}' with {} atoms".format(self.name, len(self.atoms))
+        return f"Molecule '{self.name}' with {len(self.atoms)} atoms"
 
     def __str__(self):
-        return "Molecule{} '{}' with {} atoms".format(
-            id(self), self.name, len(self.atoms))
+        return f"Molecule{id(self)} '{self.name}' with {len(self.atoms)} atoms"

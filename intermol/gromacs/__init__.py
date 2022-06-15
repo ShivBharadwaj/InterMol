@@ -109,20 +109,20 @@ def energies(top, gro, mdp, gmx_path=GMX_PATH, grosuff='', grompp_check=False):
     grompp_bin.extend(['-f', mdp, '-c', gro, '-p', top, '-o', tpr, '-po', mdout, '-maxwarn', '5'])
     proc = run_subprocess(grompp_bin, 'gromacs', stdout_path, stderr_path)
     if proc.returncode != 0:
-        logger.error('grompp failed. See %s' % stderr_path)
+        logger.error(f'grompp failed. See {stderr_path}')
 
     # Run single-point calculation with mdrun.
     mdrun_bin.extend(['-nt', '1', '-s', tpr, '-o', traj, '-cpo', state, '-c', conf, '-e', ener, '-g', log])
     proc = run_subprocess(mdrun_bin, 'gromacs', stdout_path, stderr_path)
     if proc.returncode != 0:
-        logger.error('mdrun failed. See %s' % stderr_path)
+        logger.error(f'mdrun failed. See {stderr_path}')
 
     # Extract energies using g_energy
     select = " ".join(map(str, range(1, 20))) + " 0 "
     genergy_bin.extend(['-f', ener, '-o', ener_xvg, '-dp'])
     proc = run_subprocess(genergy_bin, 'gromacs', stdout_path, stderr_path, stdin=select)
     if proc.returncode != 0:
-        logger.error('g_energy failed. See %s' % stderr_path)
+        logger.error(f'g_energy failed. See {stderr_path}')
 
     return _group_energy_terms(ener_xvg)
 

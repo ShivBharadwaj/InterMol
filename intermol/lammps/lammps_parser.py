@@ -95,10 +95,7 @@ class LammpsParser(object):
         if bond.__class__ == HarmonicPotentialBond:
             typename = 'harmonic'
 
-        if direction == 'into':
-            return bond, params
-        else:
-            return typename, [params]  # we expect a list
+        return (bond, params) if direction == 'into' else (typename, [params])
 
     lammps_angles = {
         'harmonic': HarmonicAngle,
@@ -129,10 +126,7 @@ class LammpsParser(object):
         if angletest == UreyBradleyAngle:
             params['kUB'] *= canonical_force_scale
 
-        if direction == 'into':
-            return angle, params
-        else:
-            return typename, [params]  # We expect a list
+        return (angle, params) if direction == 'into' else (typename, [params])
 
     lammps_dihedrals = {
         'opls': FourierDihedral,
@@ -189,22 +183,17 @@ class LammpsParser(object):
             dihedral_class = dihedral.__class__
             canonical_force_scale = self.SCALE_FROM
             if dihedral_class == TrigDihedral:
-                if False: #dihedral.improper:
-                    # TODO
-                    d_type = '4'
-                    paramlist = convert_dihedral_from_trig_to_proper(params)
+                if (params['phi'].value_in_unit(units.degrees) in [0, 180] and
+                            params['fc5']._value == 0 and
+                            params['fc6']._value == 0):
+                    typename = 'multi/harmonic'
+                    parameters = convert_dihedral_from_trig_to_RB(params)
+                    paramlist = [parameters]
                 else:
-                    if (params['phi'].value_in_unit(units.degrees) in [0, 180] and
-                                params['fc5']._value == 0 and
-                                params['fc6']._value == 0):
-                        typename = 'multi/harmonic'
-                        parameters = convert_dihedral_from_trig_to_RB(params)
-                        paramlist = [parameters]
-                    else:
-                        # Print as proper dihedral. If one nonzero term, as a
-                        # type 1, if multiple, type 9.
-                        typename = 'charmm'
-                        paramlist = convert_dihedral_from_trig_to_proper(params)
+                    # Print as proper dihedral. If one nonzero term, as a
+                    # type 1, if multiple, type 9.
+                    typename = 'charmm'
+                    paramlist = convert_dihedral_from_trig_to_proper(params)
 
             elif dihedral_class == ImproperHarmonicDihedral:
                 params['k'] *= canonical_force_scale
@@ -354,7 +343,7 @@ class LammpsParser(object):
             'special_bonds lj 0.0 0.0 0.0 coul 0.0 0.0 0.0 angle no dihedral no extra 0']
 
         keyword_defaults = {x.split()[0]: x for x in defaults}
-        keyword_check = {x: False for x in keyword_defaults.keys()}
+        keyword_check = {x: False for x in keyword_defaults}
 
         with open(self.in_file, 'r') as input_lines:
             for line in input_lines:
@@ -364,7 +353,7 @@ class LammpsParser(object):
                         parsable_keywords[keyword](line.split())
                         keyword_check[keyword] = True
 
-        for key in keyword_check.keys():
+        for key in keyword_check:
             if not (keyword_check[key]):
                 logger.warning('Keyword {0} not set, using LAMMPS default value {1}'.format(
                         key, " ".join(keyword_defaults[key].split()[1:])))
@@ -438,9 +427,9 @@ class LammpsParser(object):
         # Indentify 1-2, 1-3, and 1-4 neighbors and create pair forces
         for mol_type in self.system.molecule_types.values():
             molecule = list(mol_type.molecules)[0]
-            onetwo =   [set() for i in range(len(molecule.atoms) + 1)]
-            onethree = [set() for i in range(len(molecule.atoms) + 1)]
-            onefour =  [set() for i in range(len(molecule.atoms) + 1)]
+            onetwo = [set() for _ in range(len(molecule.atoms) + 1)]
+            onethree = [set() for _ in range(len(molecule.atoms) + 1)]
+            onefour = [set() for _ in range(len(molecule.atoms) + 1)]
 
             # 1-2 neighbors
             for bond in mol_type.bond_forces:
@@ -451,13 +440,17 @@ class LammpsParser(object):
                 # 1-3 neighbors
                 for aj in onetwo[ai]:
                     for ak in onetwo[aj]:
-                        if not ((ak == ai) or (ak in onetwo[ai])):
+                        if ak != ai and ak not in onetwo[ai]:
                             onethree[ai].add(ak)
 
                 # 1-4 neighbors
                 for aj in onethree[ai]:
                     for ak in onetwo[aj]:
-                        if not ((ak == ai) or (ak in onetwo[ai]) or (ak in onethree[ai])):
+                        if (
+                            ak != ai
+                            and ak not in onetwo[ai]
+                            and ak not in onethree[ai]
+                        ):
                             onefour[ai].add(ak)
 
             # Generate 1-4 pairs (need to check nrexcl, lj/coulomb correction)
@@ -522,30 +515,25 @@ class LammpsParser(object):
     def parse_pair_style(self, line):
         """ """
         self.pair_style = []
-        if line[1] in ('lj/cut/coul/long', 'lj/cut', 'lj/cut/coul/cut'):
-            self.pair_style.append(line[1])
-            self.system.nonbonded_function = 1
-        else:
+        if line[1] not in ('lj/cut/coul/long', 'lj/cut', 'lj/cut/coul/cut'):
             raise UnimplementedSetting(line, ENGINE)
+        self.pair_style.append(line[1])
+        self.system.nonbonded_function = 1
 
     def parse_kspace_style(self, line):
         """
         Note:
             Currently ignored.
         """
-        if line[1] == 'pppm':
-            pass
+        pass
 
     def parse_pair_modify(self, line):
         """
         """
-        if line[1] == 'mix':
-            if line[2] == 'geometric':
-                self.system.combination_rule = 'Multiply-Sigeps'
-            elif line[2] == 'arithmetic':
-                self.system.combination_rule = 'Lorentz-Berthelot'
-            else:
-                raise UnimplementedSetting(line, ENGINE)
+        if line[1] == 'mix' and line[2] == 'geometric':
+            self.system.combination_rule = 'Multiply-Sigeps'
+        elif line[1] == 'mix' and line[2] == 'arithmetic':
+            self.system.combination_rule = 'Lorentz-Berthelot'
         else:
             raise UnimplementedSetting(line, ENGINE)
 
@@ -558,7 +546,7 @@ class LammpsParser(object):
             for style in line[2:]:
                 style_set.add(style)
         else:
-            raise LammpsError("Invalid style in input file: {}!".format(line))
+            raise LammpsError(f"Invalid style in input file: {line}!")
         return style_set
 
     def parse_bond_style(self, line):
@@ -631,7 +619,7 @@ class LammpsParser(object):
     def parse_masses(self, data_lines):
         """Read masses from data file."""
         next(data_lines)  # toss out blank line
-        self.mass_dict = dict()
+        self.mass_dict = {}
         for line in data_lines:
             if not line.strip():
                 break  # found another blank line
@@ -641,7 +629,7 @@ class LammpsParser(object):
     def parse_pair_coeffs(self, data_lines):
         """Read pair coefficients from data file."""
         next(data_lines)  # toss out blank line
-        self.nb_types = dict()
+        self.nb_types = {}
         for line in data_lines:
             if not line.strip():
                 break  # found another blank line
@@ -671,15 +659,14 @@ class LammpsParser(object):
                 style = list(force_style)[0]  # awkward to have to translate to list to get the only member!
                 if style == fields[1]:
                     field_offset = 2
-                else:
-                    if re.search('[a-zA-Z]+', fields[1]):
-                        if style == 'none':
-                            style = fields[1]
-                            field_offset = 2
-                        else:
-                            warn = True
+                elif re.search('[a-zA-Z]+', fields[1]):
+                    if style == 'none':
+                        style = fields[1]
+                        field_offset = 2
                     else:
-                        field_offset = 1
+                        warn = True
+                else:
+                    field_offset = 1
 
             elif len(force_style) > 1:
                 style = fields[1]
@@ -707,28 +694,28 @@ class LammpsParser(object):
 
     def parse_bond_coeffs(self, data_lines):
 
-        self.bond_classes = dict()
+        self.bond_classes = {}
         self.parse_force_coeffs(data_lines, "Bond",
                                 self.bond_classes, self.bond_style,
                                 self.lammps_bonds, self.canonical_bond)
 
     def parse_angle_coeffs(self, data_lines):
 
-        self.angle_classes = dict()
+        self.angle_classes = {}
         self.parse_force_coeffs(data_lines, "Angle",
                                 self.angle_classes, self.angle_style,
                                 self.lammps_angles, self.canonical_angle)
 
     def parse_dihedral_coeffs(self, data_lines):
 
-        self.dihedral_classes = dict()
+        self.dihedral_classes = {}
         self.parse_force_coeffs(data_lines, "Dihedral",
                                 self.dihedral_classes, self.dihedral_style,
                                 self.lammps_dihedrals, self.canonical_dihedral)
 
     def parse_improper_coeffs(self, data_lines):
 
-        self.improper_classes = dict()
+        self.improper_classes = {}
         self.parse_force_coeffs(data_lines, "Improper",
                                 self.improper_classes, self.improper_style,
                                 self.lammps_impropers, self.canonical_dihedral)
@@ -742,9 +729,6 @@ class LammpsParser(object):
                 break  # found another blank line
             fields = line.partition('#')[0].split()
 
-            if len(fields) == 10:
-                # TODO: store image flags?
-                pass
             new_atom_type = None
             if self.system.combination_rule == "Multiply-C6C12":
                 logger.warning("Combination rule 'Multiply-C6C12' not yet implemented")
@@ -791,11 +775,11 @@ class LammpsParser(object):
         """ """
         next(data_lines)
         atoms = self.current_mol.atoms
-        vel_dict = dict()
+        vel_dict = {}
         for line in data_lines:
             if not line.strip():
                 break
-            fields = [field for field in line.partition('#')[0].split()]
+            fields = list(line.partition('#')[0].split())
             vel_dict[int(fields[0])] = fields[1:4]
         for atom in atoms:
             atom._velocity = [float(vel) * self.VEL for vel in
@@ -841,7 +825,7 @@ class LammpsParser(object):
         elif forceclass in ['Dihedral', 'Improper']:
             return [force.atom1, force.atom2, force.atom3, force.atom4]
         else:
-            logger.warning("No interaction type %s defined!" % (forceclass))
+            logger.warning(f"No interaction type {forceclass} defined!")
 
     def get_force_bondingtypes(self, force, forceclass):
         """Return the atoms involved in a force. """
@@ -853,7 +837,7 @@ class LammpsParser(object):
             return [force.bondingtype1, force.bondingtype2, force.bondingtype3,
                     force.bondingtype4]
         else:
-            logger.warning("No interaction type %s defined!" % (forceclass))
+            logger.warning(f"No interaction type {forceclass} defined!")
 
     def write_forces(self, forces, offset, force_name,
                      lookup_lammps_force, lammps_force_types, canonical_force):

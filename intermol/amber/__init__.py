@@ -74,7 +74,7 @@ def energies(prmtop, crd, input, amb_path):
     cmd = [amber_bin, '-i', input, '-c', crd, '-p', prmtop, '-o', mdout, '-O']
     proc = run_subprocess(cmd, 'amber', stdout_path, stderr_path)
     if proc.returncode != 0:
-        logger.error('sander failed. See %s' % stderr_path)
+        logger.error(f'sander failed. See {stderr_path}')
 
     return _group_energy_terms(mdout)
 
@@ -87,12 +87,14 @@ def _group_energy_terms(mdout):
 
     # Find where the energy information starts.
     for i, line in enumerate(all_lines):
-        if line[0:8] == '   NSTEP':
+        if line[:8] == '   NSTEP':
             startline = i
             break
     else:
-        raise AmberError('Unable to detect where energy info starts in AMBER '
-                         'output file: {}'.format(mdout))
+        raise AmberError(
+            f'Unable to detect where energy info starts in AMBER output file: {mdout}'
+        )
+
 
     # Strange ranges for amber file data.
     ranges = [[1, 24], [26, 49], [51, 77]]
@@ -100,17 +102,16 @@ def _group_energy_terms(mdout):
     e_out = OrderedDict()
     potential = 0 * units.kilocalories_per_mole
     for line in all_lines[startline+3:]:
-        if '=' in line:
-            for i in range(3):
-                r = ranges[i]
-                term = line[r[0]:r[1]]
-                if '=' in term:
-                    energy_type, energy_value = term.split('=')
-                    energy_value = float(energy_value) * units.kilocalories_per_mole
-                    potential += energy_value
-                    energy_type = energy_type.rstrip()
-                    e_out[energy_type] = energy_value
-        else:
+        if '=' not in line:
             break
+        for i in range(3):
+            r = ranges[i]
+            term = line[r[0]:r[1]]
+            if '=' in term:
+                energy_type, energy_value = term.split('=')
+                energy_value = float(energy_value) * units.kilocalories_per_mole
+                potential += energy_value
+                energy_type = energy_type.rstrip()
+                e_out[energy_type] = energy_value
     e_out['ENERGY'] = potential
     return e_out, mdout

@@ -6,7 +6,6 @@ class Constraint(object):
             units.nanometers, units.nanometers, units.nanometers, units.nanometers,
             units.nanometers, units.nanometers, units.nanometers, units.nanometers,
             None)
-
     def __init__(self, atom1, atom2, length1, type, atom3=None, length2=None, atom4=None, length3=None, atom5=None, length4=None, atom6=None, length5=None, atom7=None, length6=None, atom8=None, length7=None, atom9=None, length8=None):
         """
         """
@@ -19,7 +18,7 @@ class Constraint(object):
             self.length1 = length1
             self.length2 = length2
             self.length3 = length3
-        elif str(type)[0:2]=='AH':
+        elif str(type).startswith('AH'):
             self.n = int(list(type)[-1])
             if self.n >= 1:
                 self.atom1 = atom1

@@ -53,7 +53,7 @@ force_types/three_out_virtual_type.py
 force_types/four_fdn_virtual_type.py
 """
 
-all_unitlist = dict()
+all_unitlist = {}
 for name, uset in master_unitlist.items():
     # Shouldn't really matter which unitset we use for writing the function
     # types, as they are just for testing functional compatibility.
@@ -92,8 +92,8 @@ for forcelist in forcelists:
     absSlots = ''
     for i, p in enumerate(abstractparams):
         absParamStr += p
-        absParamStrDefaults += (p + '=' + abstractdefaults[i])
-        absParamStrSelf += (p + '=' + p)
+        absParamStrDefaults += f'{p}={abstractdefaults[i]}'
+        absParamStrSelf += f'{p}={p}'
         absSlots += '\'' + p + '\''
         if p != abstractparams[-1]:
             absParamStr += ', '
@@ -102,8 +102,6 @@ for forcelist in forcelists:
             absSlots += ', '
 
     for force in forcelist:
-        # These depend on the number of atoms but for virtual sites, the number
-        # of atoms is inside, so we put this inside.
         if forcelist == virtualsitelist:
             if 'two' in force:
                 natoms = 3
@@ -114,11 +112,9 @@ for forcelist in forcelists:
             if 'n_' in force:
                 break   # We don't support these yet.
 
-        # The abstract type module.
-        if forcelist == virtualsitelist:
             abstract_type_file = 'abstract_%d_' % (natoms-1) + ftype + '_type'
         else:
-            abstract_type_file = 'abstract_' + ftype + '_type'
+            abstract_type_file = f'abstract_{ftype}_type'
 
         # The name of the abstract class used
         abstract_type = capifyname(abstract_type_file)
@@ -129,12 +125,12 @@ for forcelist in forcelists:
         atoms = ''
         for i in range(natoms):
             si = str(i+1)
-            bondingtypes += 'bondingtype' + si + ', '
-            optbondingtypes += 'bondingtype' + si + '=None, '
-            atoms += 'atom' + si + ', '
+            bondingtypes += f'bondingtype{si}, '
+            optbondingtypes += f'bondingtype{si}=None, '
+            atoms += f'atom{si}, '
 
-        forcename = force + '_' + ftype
-        filename = forcename + '_type.py'
+        forcename = f'{force}_{ftype}'
+        filename = f'{forcename}_type.py'
 
         with open(filename, 'w') as f:
             # Imports
@@ -146,10 +142,10 @@ for forcelist in forcelists:
             capname = capifyname(forcename)
 
             # Name of the class type in camelCase.
-            capnametype = capname + 'Type'
+            capnametype = f'{capname}Type'
 
             # Define the class type.
-            f.write('class ' + capnametype + '(' + abstract_type + '):\n')
+            f.write(f'class {capnametype}({abstract_type}' + '):\n')
 
             # List the slots for the type .
             f.write('    __slots__ = [')
@@ -162,7 +158,7 @@ for forcelist in forcelists:
             spaces = ' ' * 30
             f.write('    @accepts_compatible_units(')
             # Units for atoms (None)
-            for i in range(natoms):
+            for _ in range(natoms):
                 f.write('None, ')
             f.write('\n')
             # Write out the explicit units.
@@ -205,7 +201,7 @@ for forcelist in forcelists:
             f.write('class {0}({1}):\n'.format(capname, capnametype))
             # Include the docstring here.
             f.write('    """\n')
-            f.write('    ' + doclist[forcename])
+            f.write(f'    {doclist[forcename]}')
             f.write('    """\n')
 
             # Define the init for the class.
@@ -227,7 +223,7 @@ for forcelist in forcelists:
             # Init the type of this force.
             f.write('        {0}.__init__(self, {1}\n'.format(capnametype, bondingtypes))
             spaces = ' ' * 16
-            for i, param in enumerate(master_paramlist[forcename]):
+            for param in master_paramlist[forcename]:
                 f.write('{0}{1}={1},\n'.format(spaces, param))
             f.write('{0}{1})'.format(spaces, absParamStrSelf))
 

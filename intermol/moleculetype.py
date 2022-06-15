@@ -72,9 +72,7 @@ class MoleculeType(object):
         return self._match_four_atoms(dihedral, self.dihedral_forces)
 
     def __repr__(self):
-        return "MoleculeType '{}' with {} molecules".format(
-            self.name, len(self.molecules))
+        return f"MoleculeType '{self.name}' with {len(self.molecules)} molecules"
 
     def __str__(self):
-        return "MoleculeType{} '{}' with {} molecules".format(
-            id(self), self.name, len(self.molecules))
+        return f"MoleculeType{id(self)} '{self.name}' with {len(self.molecules)} molecules"

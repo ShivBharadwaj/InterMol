@@ -77,8 +77,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Convert tests from one engine to all others.')
 
-    engine = parser.add_argument('-p', '--program', metavar='engine',
-            default='gromacs', help="The engine to convert from: {}".format(', '.join(ENGINES)))
+    engine = parser.add_argument(
+        '-p',
+        '--program',
+        metavar='engine',
+        default='gromacs',
+        help=f"The engine to convert from: {', '.join(ENGINES)}",
+    )
+
     type_of_test = parser.add_argument('-t', '--type', metavar='test_type',
             default='unit', help="The type of tests to run: unit, stress.")
     compute_energies = parser.add_argument('-e', '--energy', dest='compute_energies',

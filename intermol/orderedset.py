@@ -36,10 +36,7 @@ class OrderedSet(collections.Set):
         if len(self) > len(other):
             return False
 
-        for e1, e2 in zip(self, other):
-            if e1 != e2:
-                return False
-        return True
+        return all(e1 == e2 for e1, e2 in zip(self, other))
 
     def __repr__(self):
         class_name = self.__class__.__name__

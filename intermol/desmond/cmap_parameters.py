@@ -2,8 +2,8 @@
 # required for the input parameter format
 
 def get_cmap_charts():
-    cmap_charts = []
-    cmap_charts.append("""
+    return [
+        """
     ffio_cmap1[576] {
     r_ffio_ai
     r_ffio_aj
@@ -587,8 +587,8 @@ def get_cmap_charts():
     576 165 165 -2.23102
     :::
     }
-    """)
-    cmap_charts.append("""
+    """,
+        """
     ffio_cmap2[576] {
     r_ffio_ai
     r_ffio_aj
@@ -1172,8 +1172,8 @@ def get_cmap_charts():
     576 165 165 -2.23102
     :::
     }
-    """)
-    cmap_charts.append("""
+    """,
+        """
     ffio_cmap3[576] {
     r_ffio_ai
     r_ffio_aj
@@ -1757,8 +1757,8 @@ def get_cmap_charts():
     576 165 165 0
     :::
     }
-    """)
-    cmap_charts.append("""
+    """,
+        """
     ffio_cmap4[576] {
     r_ffio_ai
     r_ffio_aj
@@ -2342,8 +2342,8 @@ def get_cmap_charts():
     576 165 165 0
     :::
     }
-    """)
-    cmap_charts.append("""
+    """,
+        """
     ffio_cmap5[576] {
     r_ffio_ai
     r_ffio_aj
@@ -3510,5 +3510,5 @@ def get_cmap_charts():
     576 165 165 -0.8967
     :::
     }
-    """)
-    return cmap_charts
+    """,
+    ]

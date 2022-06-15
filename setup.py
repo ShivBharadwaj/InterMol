@@ -1,5 +1,6 @@
 """InterMol: A conversion tool for molecular dynamics simulations.
 """
+
 from __future__ import print_function
 
 import os
@@ -9,10 +10,7 @@ from setuptools import setup, find_packages
 #####################################
 VERSION = "0.1.0"
 ISRELEASED = True
-if ISRELEASED:
-    __version__ = VERSION
-else:
-    __version__ = VERSION + '.dev0'
+__version__ = VERSION if ISRELEASED else f'{VERSION}.dev0'
 #####################################
 
 with open('intermol/version.py', 'w') as version_file:
@@ -34,24 +32,27 @@ setup(
     description=__doc__,
     author='Christoph Klein, Christopher Lee, Ellen Zhong, and Michael Shirts',
     author_email='ctk3b@virginia.edu, ctl4f@virginia.edu, edz3fz@virginia.edu, '
-                 'michael.shirts@virginia.edu',
+    'michael.shirts@virginia.edu',
     url='https://github.com/shirtsgroup/intermol',
-    download_url='https://github.com/shirtsgroup/intermol/tarball/{}'.format(__version__),
+    download_url=f'https://github.com/shirtsgroup/intermol/tarball/{__version__}',
     packages=find_packages(),
     package_dir={'intermol': 'intermol'},
-    package_data={'tests': ['*.py',
-                            '*.md',
-                            'desmond/*.cfg',
-                            'desmond/*/*.cms',
-                            'gromacs/*.mdp',
-                            'gromacs/*/*/*.gro',
-                            'gromacs/*/*/*.top',
-                            'gromacs/*/*/*.itp',
-                            'lammps/*/*.lmp',
-                            'lammps/*/*.input',
-                            'amber/*.in',
-                            'amber/*/*',
-                            ]},
+    package_data={
+        'tests': [
+            '*.py',
+            '*.md',
+            'desmond/*.cfg',
+            'desmond/*/*.cms',
+            'gromacs/*.mdp',
+            'gromacs/*/*/*.gro',
+            'gromacs/*/*/*.top',
+            'gromacs/*/*/*.itp',
+            'lammps/*/*.lmp',
+            'lammps/*/*.input',
+            'amber/*.in',
+            'amber/*/*',
+        ]
+    },
     include_package_data=True,
     install_requires=reqs,
     license="MIT",
@@ -67,8 +68,8 @@ setup(
         'Environment :: Console',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering :: Chemistry',
-        'Topic :: Software Development :: Libraries :: Python Modules'
-        ],
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
     entry_points={
         'console_scripts': [
             'intermol-convert=intermol.convert:main',
