@@ -120,10 +120,7 @@ def potential_energy_diff(e_in, e_out):
 
 def find_match(key, dictionary, unit):
     """Helper function for `summarize_energy_results`. """
-    if key in dictionary:
-        return dictionary[key].value_in_unit(unit)
-    else:
-        return np.nan
+    return dictionary[key].value_in_unit(unit) if key in dictionary else np.nan
 
 
 def summarize_energy_results(energy_input, energy_outputs, input_type, output_types):
@@ -139,7 +136,6 @@ def summarize_energy_results(energy_input, energy_outputs, input_type, output_ty
     Returns:
         out (list of strings): which forms a summary table using "\n".join(out)
     """
-    out = []
     # Remove failed evaluations (-1 in energy_outputs)
     failed_i = [i for i, x in enumerate(energy_outputs) if x == -1]
     failed = [output_types[i] for i in failed_i]
@@ -161,25 +157,21 @@ def summarize_energy_results(energy_input, energy_outputs, input_type, output_ty
         for j in range(len(energy_all)):
             data[i, j] = find_match(labels[i], energy_all[j], unit)
 
-    # TODO: sort table
-    out.append('')
-    out.append('Energy group summary')
-    out.append('=======================================================================')
-    header = '%20s %18s ' % ('type', 'input (%s)' % input_type)
+    header = '%20s %18s ' % ('type', f'input ({input_type})')
     for otype in output_types:
-        header += '%37s' % ('output (%s) diff (%s)' % (otype, otype))
-    out.append(header)
+        header += '%37s' % f'output ({otype}) diff ({otype})'
+    out = [
+        '',
+        'Energy group summary',
+        '=======================================================================',
+        header,
+    ]
+
     for i in range(len(data)):
         line = '%20s ' % labels[i]
-        if np.isnan(data[i][0]):
-            line += '%18s' % 'n/a'
-        else:
-            line += '%18.8f' % (data[i][0])
+        line += '%18s' % 'n/a' if np.isnan(data[i][0]) else '%18.8f' % (data[i][0])
         for j in range(1, len(data[i])):
-            if np.isnan(data[i][j]):
-                line += '%18s' % 'n/a'
-            else:
-                line += '%18.8f' % (data[i][j])
+            line += '%18s' % 'n/a' if np.isnan(data[i][j]) else '%18.8f' % (data[i][j])
             if np.isnan(data[i][j]) or np.isnan(data[i][0]):
                 line += '%18s' % 'n/a'
             else:
@@ -189,11 +181,17 @@ def summarize_energy_results(energy_input, energy_outputs, input_type, output_ty
     # get differences in potential energy
     i = labels.index('Potential')
     diff = data[i, 1::] - data[i, 0]
-    for d, otype in zip(diff, output_types):
-        out.append('difference in potential energy from %s=>%s conversion: %18.8f'
-                    % (input_type, otype, d))
-    for fail in failed:
-        out.append('energy comparison for {0} output failed'.format(fail))
+    out.extend(
+        'difference in potential energy from %s=>%s conversion: %18.8f'
+        % (input_type, otype, d)
+        for d, otype in zip(diff, output_types)
+    )
+
+    out.extend(
+        'energy comparison for {0} output failed'.format(fail)
+        for fail in failed
+    )
+
     out.append('=======================================================================')
     return out
 

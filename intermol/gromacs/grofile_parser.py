@@ -25,12 +25,12 @@ class GromacsGroParser(object):
         self.gro_file = gro_file
 
     def read(self):
-        atomname = list()
-        resid = list()
-        resname = list()
-        boxes = list()
-        xyzs = list()
-        vels = list()
+        atomname = []
+        resid = []
+        resname = []
+        boxes = []
+        xyzs = []
+        vels = []
         with open(self.gro_file) as gro:
             next(gro)
             n_atoms = int(next(gro).strip())

@@ -51,19 +51,12 @@ def pick_crystal_type(box):
 
     if rectangular:
         if a == b:
-            if b == c:
-                boxtype = 'cubic'
-            else:
-                boxtype = 'tetragonal'
+            boxtype = 'cubic' if b == c else 'tetragonal'
         else:
             boxtype = 'orthorombic'
 
     elif alpha == gamma and alpha == 90:
-        if alpha == beta:
-            boxtype = 'orthorhombic'
-        else:
-            boxtype = 'monoclinic'
-
+        boxtype = 'orthorhombic' if alpha == beta else 'monoclinic'
     elif a == b:
         if alpha == beta and alpha == 90.0 and gamma == 120.0:
             boxtype = 'hexagonal'
@@ -152,7 +145,7 @@ def energies(inpfile, crm_path):
     cmd = [charmm_bin, '-i', inpfile]
     proc = run_subprocess(cmd, 'charmm', stdout_path, stderr_path)
     if proc.returncode != 0:
-        logger.error('charmm failed. See %s' % stderr_path)
+        logger.error(f'charmm failed. See {stderr_path}')
 
     # Extract energies from charmm output
 
@@ -165,22 +158,19 @@ def _group_energy_terms(mdout):
     with open(mdout) as f:
         all_lines = f.readlines()
 
-    startline = -1
-    # find where the energy information starts
-    for i, line in enumerate(all_lines):
-        if line[0:9] == 'ENER ENR:':
-            startline = i
-            break
+    startline = next(
+        (i for i, line in enumerate(all_lines) if line[:9] == 'ENER ENR:'), -1
+    )
 
     if startline == -1:
-        logger.error('No energy data (ENER ENR line) found in %s' % mdout)
+        logger.error(f'No energy data (ENER ENR line) found in {mdout}')
         return
 
     energy_types = []
     energy_values = []
 
     for line in all_lines[startline:]:
-        if line[0:4] == 'ENER':
+        if line[:4] == 'ENER':
             if '>' in line:
                 # unforunately, we can' just split; we have to do it by fixed width
                 startcol = 15
@@ -193,9 +183,6 @@ def _group_energy_terms(mdout):
                     energy_values.append(float(v)*units.kilocalories_per_mole)
             else:
                 names = line.split()
-                for n in names[2:]:
-                    if n != "Eval#":
-                        energy_types.append(n)
-
+                energy_types.extend(n for n in names[2:] if n != "Eval#")
     e_out = OrderedDict(zip(energy_types, energy_values))
     return e_out, mdout

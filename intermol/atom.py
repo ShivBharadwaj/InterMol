@@ -14,19 +14,19 @@ class Atom(object):
         self.residue_index = residue_index
         self.residue_name = residue_name
 
-        self._position = list()
-        self._velocity = list()
-        self._force = list()
+        self._position = []
+        self._velocity = []
+        self._force = []
 
-        self._atomtype = dict()
+        self._atomtype = {}
         self.bondingtype = None
         self.atomic_number = None
         self.cgnr = None
-        self._mass = dict()
-        self._charge = dict()
+        self._mass = {}
+        self._charge = {}
         self.ptype = "A"
-        self._sigma = dict()
-        self._epsilon = dict()
+        self._sigma = {}
+        self._epsilon = {}
 
     @property
     def atomtype(self):

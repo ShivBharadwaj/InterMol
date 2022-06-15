@@ -53,14 +53,11 @@ def get_desmond_energy_from_file(energy_file):
                 words = line.split()
                 if words[-1] == 'total':
                     continue
-                key = words[0]
-                if key:
+                if key := words[0]:
                     types.append(key)
                     data.append(words[-1])
     data = [float(value) * units.kilocalories_per_mole for value in data]
-    e_out = OrderedDict(zip(types, data))
-
-    return e_out
+    return OrderedDict(zip(types, data))
 
 
 def energies(cms, cfg, des_path):
@@ -82,8 +79,8 @@ def energies(cms, cfg, des_path):
     direc, cms_filename = os.path.split(cms)
     cwd = os.getcwd()
     name = os.path.splitext(cms_filename)[0]
-    energy_file = '%s/%s.enegrp.dat' % (direc, name)
-    if des_path and not (des_path == ''):
+    energy_file = f'{direc}/{name}.enegrp.dat'
+    if des_path and des_path != '':
         desmond_bin = os.path.join(des_path,'desmond')
     elif os.environ.get('SCHRODINGER'):
         desmond_bin = os.path.join(os.environ.get('SCHRODINGER'), 'desmond')
@@ -102,13 +99,13 @@ def energies(cms, cfg, des_path):
         exit = subprocess.call(cmd, stdout=out, stderr=err)
 
     if exit:
-        logger.error('Energy evaluation failed. See %s/desmond_stderr.txt' % direc)
+        logger.error(f'Energy evaluation failed. See {direc}/desmond_stderr.txt')
         os.chdir(cwd) # return directory up a level again
         raise Exception('Energy evaluation failed for {0}'.format(cms))
 
     tot_energy = get_desmond_energy_from_file(energy_file)
     # for now, remove the desmond '-out.cms' file.
-    outcms = cms[:-4] + '-out' + cms[-4:]
+    outcms = f'{cms[:-4]}-out{cms[-4:]}'
     os.remove(outcms)
     os.chdir(cwd) # return directory up a level again
     return tot_energy, energy_file

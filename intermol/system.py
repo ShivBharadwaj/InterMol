@@ -16,11 +16,7 @@ class System(object):
         Args:
             name (str): The name of the system
         """
-        if name:
-            self.name = name
-        else:
-            self.name = "Untitled"
-
+        self.name = name or "Untitled"
         self.nonbonded_function = 0
         self.combination_rule = 0
         self.genpairs = 'yes'
@@ -31,8 +27,8 @@ class System(object):
 
         self._n_atoms = None
         self._molecule_types = OrderedDict()
-        self._atomtypes = dict()
-        self._nonbonded_types = dict()
+        self._atomtypes = {}
+        self._nonbonded_types = {}
 
         self._bondgraph = None
 
@@ -64,8 +60,7 @@ class System(object):
     def atoms(self):
         for mol_type in self.molecule_types.values():
             for mol in mol_type.molecules:
-                for atom in mol.atoms:
-                    yield atom
+                yield from mol.atoms
 
     @property
     def n_atoms(self):
@@ -126,13 +121,11 @@ class System(object):
         -----
         This method requires the NetworkX python package.
         """
-        if self._bondgraph is not None:
-            return self._bondgraph
-        else:
+        if self._bondgraph is None:
             import networkx as nx
             self._bondgraph = nx.Graph()
             self._bondgraph.add_edges_from(self.connected_pairs)
-            return self._bondgraph
+        return self._bondgraph
 
     # def gen_pairs(self, n_excl=4):
     #
@@ -146,9 +139,9 @@ class System(object):
     #         raise ValueError('Unsupported number of pair exclusions.')
 
     def __repr__(self):
-        return "System '{}' ".format(self.name)
+        return f"System '{self.name}' "
 
     def __str__(self):
-        return "System{} '{}'".format(id(self), self.name)
+        return f"System{id(self)} '{self.name}'"
 
 

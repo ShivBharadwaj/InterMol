@@ -35,13 +35,21 @@ to_canonical = {
 }
 
 
-for exe in ['lammps', 'lmp_mpi', 'lmp_serial', 'lmp_openmpi',
-            'lmp_mac_mpi', '/home/mish4610/software/lammps/src/lmp_serial']:
-    if which(exe):
-        LMP_PATH = exe
-        break
-else:
-    LMP_PATH = None
+LMP_PATH = next(
+    (
+        exe
+        for exe in [
+            'lammps',
+            'lmp_mpi',
+            'lmp_serial',
+            'lmp_openmpi',
+            'lmp_mac_mpi',
+            '/home/mish4610/software/lammps/src/lmp_serial',
+        ]
+        if which(exe)
+    ),
+    None,
+)
 
 
 def energies(input_file, lmp_path=None):
@@ -77,7 +85,7 @@ def energies(input_file, lmp_path=None):
     cmd = [lmp_path, '-in', input_file]
     proc = run_subprocess(cmd, 'lammps', stdout_path, stderr_path)
     if proc.returncode != 0:
-        logger.error('LAMMPS failed. See %s/lammps_stderr.txt' % directory)
+        logger.error(f'LAMMPS failed. See {directory}/lammps_stderr.txt')
 
     # Step back out.
     os.chdir(saved_path)

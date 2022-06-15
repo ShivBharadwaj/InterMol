@@ -75,7 +75,10 @@ def accepts_compatible_units(*units, **unitdict):
                     assert (a.unit).is_compatible(u), "arg %r does not have units compatible with %s" % (a,u)
             for k, u in unitdict.items():  # should be ignored if no unitdict
                 if u is not None:
-                    assert (kwds[k].unit).is_compatible(u), "kwd arg %s does not have units compatible with %s" % (kwds[k],u)
+                    assert (kwds[k].unit).is_compatible(
+                        u
+                    ), f"kwd arg {kwds[k]} does not have units compatible with {u}"
+
             return f(*args, **kwds)
         new_f.__name__ = f.__name__
         new_f.__doc__ = f.__doc__

@@ -37,7 +37,6 @@ def convert_dihedral_from_proper_to_trig(p):
 
 def convert_dihedral_from_fourier_to_trig(f):
 
-    fcs = dict()
     F1 = f['c1']
     F2 = f['c2']
     F3 = f['c3']
@@ -45,26 +44,27 @@ def convert_dihedral_from_fourier_to_trig(f):
 
     zu = 0*F1.unit
 
-    fcs['phi'] = 0 * units.degrees
-    fcs['fc0'] = 0.5*(F1+F2+F3+F4)
-    fcs['fc1'] = 0.5*F1
-    fcs['fc2'] = -0.5*F2
-    fcs['fc3'] = 0.5*F3
-    fcs['fc4'] = -0.5*F4
-    fcs['fc5'] = zu
-    fcs['fc6'] = zu
-
-    return fcs
+    return {
+        'phi': 0 * units.degrees,
+        'fc0': 0.5 * (F1 + F2 + F3 + F4),
+        'fc1': 0.5 * F1,
+        'fc2': -0.5 * F2,
+        'fc3': 0.5 * F3,
+        'fc4': -0.5 * F4,
+        'fc5': zu,
+        'fc6': zu,
+    }
 
 
 def convert_dihedral_from_trig_to_fourier(fcs):
 
-    F = dict()
-    F['F1'] = 2*fcs['fc1']
-    F['F2'] = -2*fcs['fc2']
-    F['F3'] = 2*fcs['fc3']
-    F['F4'] = -2*fcs['fc4']
-    F['F5'] = 0  # probably not correct?  No test cases.
+    F = {
+        'F1': 2 * fcs['fc1'],
+        'F2': -2 * fcs['fc2'],
+        'F3': 2 * fcs['fc3'],
+        'F4': -2 * fcs['fc4'],
+        'F5': 0,
+    }
 
     if fcs['fc0'] != 0.5*(F['F1']+F['F2']+F['F3']+F['F4']):
         print("This dihedral is inconsistent with OPLS format")
@@ -88,20 +88,17 @@ def convert_dihedral_from_trig_to_proper(fcs, convention='0'):
     plist = []
     for parameter_key, parameter_value in fcs.items():  # only one of these should be nonzero
         if parameter_value._value != 0.0 and parameter_key not in ['fc0', 'phi']:
-            p = dict()
-            p['phi'] = fcs['phi']
-            p['multiplicity'] = int(parameter_key[2]) * units.dimensionless
-            p['weight'] = 0 * units.dimensionless
-            p['k'] = parameter_value
-            plist.append(p)
-    # all parameters are zero, so the force constant is zero if fc0 is zero
-    # The other possibility is to just return no parameters here, since such
-    # a dihedral has no energy
+            p = {
+                'phi': fcs['phi'],
+                'multiplicity': int(parameter_key[2]) * units.dimensionless,
+                'weight': 0 * units.dimensionless,
+                'k': parameter_value,
+            }
 
-    if len(plist) == 0:
-        # all zeros; check if fc0 is 0. if so, the force_constant is zero.
+            plist.append(p)
+    if not plist:
         if fcs['fc0']._value == 0.0:
-            p = dict()
+            p = {}
             p['phi'] = fcs['phi']
             p['multiplicity'] = int(parameter_key[2]) * units.dimensionless
             p['weight'] = 0 * units.dimensionless
@@ -121,19 +118,18 @@ def convert_dihedral_from_RB_to_OPLS(c):
     c4 = c['C4']
     c5 = c['C5']
 
-    f = dict()
     if (c5 !=0.0 * c0.unit and c1+c2+c3+c4 != 0.0 * c0.unit):
         print("This Rb dihedral is inconsistent with OPLS style")
         print("because C5 = ", c5)
         print(" (should be 0) and c1+c2+c3+c4 = ", c1+c2+c3+c4)
         print(" (should be 0)")
         # REALLY SHOULD ADD SOME SORT OF EXCEPTION HERE.
-    # note - f1 and f3 are opposite sign as expected in GROMACS, probably because of angle conventions.
-    f['f1'] = 2.0 * c1 + 3.0 * c3 / 2.0
-    f['f2'] = -c2 - c4
-    f['f3'] = c3 / 2.0
-    f['f4'] = -c4 / 4.0
-    return f
+    return {
+        'f1': 2.0 * c1 + 3.0 * c3 / 2.0,
+        'f2': -c2 - c4,
+        'f3': c3 / 2.0,
+        'f4': -c4 / 4.0,
+    }
 
 
 def convert_dihedral_from_OPLS_to_RB(f):
@@ -143,13 +139,14 @@ def convert_dihedral_from_OPLS_to_RB(f):
     f3 = f['f3']
     f4 = f['f4']
 
-    c = dict()
-    # Note: c1 and c3 are the negative of what is defined on equation 4.64 of Gromacs Manual 4.6.1
-    c['C0'] = f2 + 0.5*(f1+f3)
-    c['C1'] = 0.5 * (f1 - 3.0 * f3)
-    c['C2'] = -f2 + 4.0 * f4
-    c['C3'] = 2.0 * f3
-    c['C4'] = -4.0 * f4
+    c = {
+        'C0': f2 + 0.5 * (f1 + f3),
+        'C1': 0.5 * (f1 - 3.0 * f3),
+        'C2': -f2 + 4.0 * f4,
+        'C3': 2.0 * f3,
+        'C4': -4.0 * f4,
+    }
+
     c['C5'] = 0.0 * c['CO'].unit  # need to keep everything in units
     c['C6'] = 0.0 * c['CO'].unit
     return c
@@ -193,17 +190,15 @@ def convert_dihedral_from_trig_to_RB(fcs):
     fc5 = sign * fcs['fc5']
     fc6 = sign * fcs['fc6']
 
-    c = dict()
-    c['C0'] = fc0 - fc2 + fc4 - fc6
-    c['C1'] = fc1 - 3.0*fc3 + 5.0*fc5
-    c['C2'] = 2.0*fc2 - 8.0*fc4 + 18.0*fc6
-    c['C3'] = 4.0*fc3 - 20.0*fc5
-    c['C4'] = 8.0*fc4 - 48.0*fc6
-    c['C5'] = 16.0*fc5
-    c['C6'] = 32.0*fc6
-
-
-    return c
+    return {
+        'C0': fc0 - fc2 + fc4 - fc6,
+        'C1': fc1 - 3.0 * fc3 + 5.0 * fc5,
+        'C2': 2.0 * fc2 - 8.0 * fc4 + 18.0 * fc6,
+        'C3': 4.0 * fc3 - 20.0 * fc5,
+        'C4': 8.0 * fc4 - 48.0 * fc6,
+        'C5': 16.0 * fc5,
+        'C6': 32.0 * fc6,
+    }
 
 
 def convert_dihedral_from_RB_to_trig(c):
@@ -213,23 +208,15 @@ def convert_dihedral_from_RB_to_trig(c):
     c3 = c['C3']
     c4 = c['C4']
     c5 = c['C5']
-    if 'C6' in c:  # program might not define this one, need to check it exists.
-        c6 = c['C6']
-    else:
-        c6 = 0*c0.unit
-
-    # See above for conversion; simply inverting the matrix.
-    # Need to handle sign for 180.
-    fcs = dict()
-    # sign?  units?  Is there a way to get out of this?
-    fcs['phi'] = 0 * units.degrees
-    fcs['fc0'] = 1.0*c0 + 0.5*c2 + 0.3750*c4 + 0.3125*c6
-    fcs['fc1'] = 1.0*c1 + 0.75*c3 + 0.6250*c5
-    fcs['fc2'] = 0.5*c2 + 0.5*c4 + 0.46875*c6
-    fcs['fc3'] = 0.25*c3 + 0.3125*c5
-    fcs['fc4'] = 0.125*c4 + 0.1875*c6
-    fcs['fc5'] = 0.0625*c5
-    fcs['fc6'] = 0.03125*c6
-
-    return fcs
+    c6 = c['C6'] if 'C6' in c else 0*c0.unit
+    return {
+        'phi': 0 * units.degrees,
+        'fc0': 1.0 * c0 + 0.5 * c2 + 0.3750 * c4 + 0.3125 * c6,
+        'fc1': 1.0 * c1 + 0.75 * c3 + 0.6250 * c5,
+        'fc2': 0.5 * c2 + 0.5 * c4 + 0.46875 * c6,
+        'fc3': 0.25 * c3 + 0.3125 * c5,
+        'fc4': 0.125 * c4 + 0.1875 * c6,
+        'fc5': 0.0625 * c5,
+        'fc6': 0.03125 * c6,
+    }
 
